@@ -1,45 +1,52 @@
 # School Management System (SMS)
 
-Uyu mushinga ugamije gufasha amashuri kuva ku mpapuro ajya kuri sisiteme y'ikoranabuhanga icunga amakuru yose y'ingenzi.
+Sisiteme yuzuye yo gufasha amashuri gucunga:
+- Amanota
+- Attendance
+- Amafaranga y'ishuri
+- Raporo z'abanyeshuri
 
-## Igenzura ry'ingenzi (Core Modules)
+## Ikibazo gikemurwa
 
-1. **Amanota**
-   - Kwinjiza amanota ku masomo yose
-   - Kubara impuzandengo no gushyira amanota ku gihembwe
-   - Kureba amateka y'amanota y'umunyeshuri
+Amashuri menshi aracyakoresha impapuro. Iyi system ibika amakuru muri database imwe, igatanga raporo zihuse kandi zigabanya amakosa.
 
-2. **Attendance (Ukwitabira amasomo)**
-   - Gufata attendance buri munsi cyangwa buri saha
-   - Kwerekana abakererewe n'abasibye
-   - Kwohereza notifications ku babyeyi (SMS/Email)
+## Features z'ingenzi
 
-3. **Amafaranga y'ishuri**
-   - Kwandika ibwishyu by'abanyeshuri
-   - Kugaragaza imyenda isigaye n'abatarishyura ku gihe
-   - Raporo y'umutungo w'ishuri ku kwezi/igihembwe
+- **Amanota:** kwinjiza amanota ku isomo no kureba impuzandengo.
+- **Attendance:** gufata present/late/absent buri munsi.
+- **Amafaranga:** kwandika ubwishyu no kubara amafaranga yishyuwe yose.
+- **Raporo:** raporo y'umunyeshuri irimo summary + detail zose.
+- **Dashboard:** imibare y'ibanze (abanyeshuri, average grade, absences, total paid).
 
-4. **Raporo z'abanyeshuri**
-   - Report cards z'igihembwe n'umwaka
-   - Raporo z'imyitwarire no kwitabira
-   - Export muri PDF no gusohora (print)
+## Pricing (Business model)
 
-## Ikibazo gikemurwa (Isoko)
+- **50,000 FRW – 300,000 FRW** one-time setup fee kuri buri shuri
+- Cyangwa **monthly subscription** (bitewe n'ingano y'ishuri)
 
-Amashuri menshi aracyakoresha impapuro, bigatera:
-- Gutakaza amakuru cyangwa kuyabika nabi
-- Gutinda kubona raporo zihuse
-- Kudasangira amakuru neza hagati y'abarimu, ubuyobozi n'ababyeyi
+## Uko wiyambaza project
 
-Iyi SMS ikemura ibi binyuze mu kubika amakuru kuri sisiteme imwe yizewe kandi yihuta.
+### 1) Tangiza server
 
-## Icyitegererezo cy'ubucuruzi (Pricing)
+```bash
+python3 app.py
+```
 
-- **One-time setup fee:** 50,000 FRW – 300,000 FRW kuri buri shuri (bitewe n'ingano n'ibikenewe)
-- **Cyangwa monthly subscription:** amafaranga y'ukwezi (ashingiye ku mubare w'abanyeshuri n'ibice byakoreshejwe)
+Server irahita iboneka kuri: `http://localhost:8000`
 
-## Agaciro ku mashuri
+### 2) Koresha UI
 
-- Kugabanya akazi k'impapuro no kongera umusaruro
-- Kongera ukuri n'umutekano w'amakuru
-- Gutanga raporo ku gihe no gufasha gufata ibyemezo bishingiye ku makuru
+- Injira abanyeshuri
+- Andika amanota
+- Andika attendance
+- Andika ubwishyu
+- Reba raporo ukoresheje Student ID
+
+## API endpoints
+
+- `GET /api/dashboard`
+- `GET /api/students`
+- `POST /api/students`
+- `POST /api/grades`
+- `POST /api/attendance`
+- `POST /api/payments`
+- `GET /api/reports/student/{id}`
