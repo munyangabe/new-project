@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>School Management System</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <header>
+      <h1>School Management System</h1>
+      <p>Amanota • Attendance • Amafaranga y’ishuri • Raporo</p>
+    </header>
+
+    <main>
+      <section class="cards" id="dashboard"></section>
+
+      <section class="panel">
+        <h2>Andika Umunyeshuri</h2>
+        <form id="studentForm">
+          <input name="name" placeholder="Amazina" required />
+          <input name="class_name" placeholder="Icyiciro (e.g. S2A)" required />
+          <input name="parent_phone" placeholder="Telephone y'umubyeyi" />
+          <button type="submit">Bika</button>
+        </form>
+      </section>
+
+      <section class="grid-2">
+        <section class="panel">
+          <h2>Amanota</h2>
+          <form id="gradeForm">
+            <input name="student_id" type="number" placeholder="Student ID" required />
+            <input name="subject" placeholder="Isomo" required />
+            <input name="score" type="number" step="0.01" placeholder="Amanota" required />
+            <input name="term" placeholder="Term (e.g. T1-2026)" required />
+            <button type="submit">Andika amanota</button>
+          </form>
+        </section>
+
+        <section class="panel">
+          <h2>Attendance</h2>
+          <form id="attendanceForm">
+            <input name="student_id" type="number" placeholder="Student ID" required />
+            <input name="date" type="date" required />
+            <select name="status">
+              <option value="present">Present</option>
+              <option value="late">Late</option>
+              <option value="absent">Absent</option>
+            </select>
+            <button type="submit">Bika attendance</button>
+          </form>
+        </section>
+      </section>
+
+      <section class="grid-2">
+        <section class="panel">
+          <h2>Amafaranga y'ishuri</h2>
+          <form id="paymentForm">
+            <input name="student_id" type="number" placeholder="Student ID" required />
+            <input name="amount" type="number" step="0.01" placeholder="Amafaranga" required />
+            <input name="term" placeholder="Term (e.g. T1-2026)" required />
+            <input name="paid_on" type="date" required />
+            <button type="submit">Bika ubwishyu</button>
+          </form>
+        </section>
+
+        <section class="panel">
+          <h2>Raporo y'umunyeshuri</h2>
+          <form id="reportForm">
+            <input name="student_id" type="number" placeholder="Student ID" required />
+            <button type="submit">Reba raporo</button>
+          </form>
+          <pre id="reportOutput">Raporo izagaragara hano...</pre>
+        </section>
+      </section>
+
+      <section class="panel">
+        <h2>Abanyeshuri</h2>
+        <table>
+          <thead>
+            <tr><th>ID</th><th>Amazina</th><th>Icyiciro</th><th>Phone</th></tr>
+          </thead>
+          <tbody id="studentsTable"></tbody>
+        </table>
+      </section>
+    </main>
+
+    <div id="toast"></div>
+    <script src="/static/app.js"></script>
+  </body>
+</html>
