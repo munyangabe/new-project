@@ -16,7 +16,8 @@ Amashuri menshi aracyakoresha impapuro. Iyi system ibika amakuru muri database i
 - **Attendance:** gufata present/late/absent buri munsi.
 - **Amafaranga:** kwandika ubwishyu no kubara amafaranga yishyuwe yose.
 - **Raporo:** raporo y'umunyeshuri irimo summary + detail zose.
-- **Dashboard:** imibare y'ibanze (abanyeshuri, average grade, absences, total paid).
+- **Activities:** gutegura no kubika ibikorwa byose by'ishuri (amasomo yihariye, ibizamini, sport, clubs, events).
+- **Dashboard:** imibare y'ibanze (abanyeshuri, average grade, absences, total paid, activities).
 
 ## Pricing (Business model)
 
@@ -125,3 +126,5 @@ SMS_HOST=0.0.0.0 SMS_PORT=9000 python3 app.py
 - `POST /api/attendance`
 - `POST /api/payments`
 - `GET /api/reports/student/{id}`
+- `GET /api/activities`
+- `POST /api/activities`

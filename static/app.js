@@ -25,6 +25,8 @@ async function loadDashboard() {
     <div class="card"><small>Impuzandengo y'amanota</small><br><b>${d.average_grade}</b></div>
     <div class="card"><small>Abasibye</small><br><b>${d.absent_count}</b></div>
     <div class="card"><small>Amafaranga yishyuwe</small><br><b>${d.paid_total} FRW</b></div>
+    <div class="card"><small>Activities zose</small><br><b>${d.activities_total}</b></div>
+    <div class="card"><small>Activities z'uyu munsi</small><br><b>${d.activities_today}</b></div>
   `;
 }
 
@@ -32,6 +34,13 @@ async function loadStudents() {
   const students = await api('/api/students');
   document.getElementById('studentsTable').innerHTML = students
     .map((s) => `<tr><td>${s.id}</td><td>${s.name}</td><td>${s.class_name}</td><td>${s.parent_phone || '-'}</td></tr>`)
+    .join('');
+}
+
+async function loadActivities() {
+  const activities = await api('/api/activities');
+  document.getElementById('activitiesTable').innerHTML = activities
+    .map((a) => `<tr><td>${a.activity_date}</td><td>${a.title}</td><td>${a.class_name}</td><td>${a.status}</td></tr>`)
     .join('');
 }
 
@@ -45,7 +54,7 @@ function registerForm(id, endpoint) {
     try {
       await api(endpoint, 'POST', formToJSON(e.target));
       e.target.reset();
-      await Promise.all([loadDashboard(), loadStudents()]);
+      await Promise.all([loadDashboard(), loadStudents(), loadActivities()]);
       notify('Byabitswe neza');
     } catch (err) {
       notify(err.message, false);
@@ -57,6 +66,7 @@ registerForm('studentForm', '/api/students');
 registerForm('gradeForm', '/api/grades');
 registerForm('attendanceForm', '/api/attendance');
 registerForm('paymentForm', '/api/payments');
+registerForm('activityForm', '/api/activities');
 
 document.getElementById('reportForm').addEventListener('submit', async (e) => {
   e.preventDefault();
@@ -70,4 +80,4 @@ document.getElementById('reportForm').addEventListener('submit', async (e) => {
   }
 });
 
-Promise.all([loadDashboard(), loadStudents()]).catch((err) => notify(err.message, false));
+Promise.all([loadDashboard(), loadStudents(), loadActivities()]).catch((err) => notify(err.message, false));

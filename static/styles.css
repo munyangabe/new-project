@@ -4,10 +4,11 @@ header { background: #1b3a6b; color: white; padding: 20px; }
 main { padding: 16px; max-width: 1100px; margin: auto; }
 .panel { background: white; border-radius: 10px; padding: 14px; margin-bottom: 16px; box-shadow: 0 1px 3px #d9dfec; }
 .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-.cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 14px; }
+.cards { display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; margin-bottom: 14px; }
 .card { background: white; border-left: 5px solid #2e66c5; border-radius: 8px; padding: 10px; }
-.card b { font-size: 1.4rem; }
+.card b { font-size: 1.25rem; }
 form { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+.form-3 { grid-template-columns: repeat(3, 1fr); }
 form button { grid-column: 1 / -1; }
 input, select, button { padding: 8px; border: 1px solid #c7d1e0; border-radius: 6px; }
 button { background: #2e66c5; color: white; border: none; cursor: pointer; }
@@ -18,5 +19,5 @@ th, td { border-bottom: 1px solid #ecf0f7; text-align: left; padding: 8px; }
 #toast { position: fixed; right: 12px; bottom: 12px; background: #102030; color: white; padding: 10px 14px; border-radius: 8px; display: none; }
 @media (max-width: 900px) {
   .grid-2, .cards { grid-template-columns: 1fr; }
-  form { grid-template-columns: 1fr; }
+  form, .form-3 { grid-template-columns: 1fr; }
 }

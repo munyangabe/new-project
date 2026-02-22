@@ -60,6 +60,20 @@ def init_db():
                 created_at TEXT NOT NULL,
                 FOREIGN KEY(student_id) REFERENCES students(id)
             );
+
+            CREATE TABLE IF NOT EXISTS activities (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                title TEXT NOT NULL,
+                activity_type TEXT NOT NULL,
+                class_name TEXT NOT NULL,
+                activity_date TEXT NOT NULL,
+                start_time TEXT,
+                end_time TEXT,
+                owner_name TEXT NOT NULL,
+                status TEXT CHECK(status IN ('planned','ongoing','completed','cancelled')) NOT NULL,
+                notes TEXT,
+                created_at TEXT NOT NULL
+            );
             """
         )
         conn.commit()
@@ -114,19 +128,38 @@ class Handler(BaseHTTPRequestHandler):
             return self._send_json([dict(r) for r in rows])
 
         if path == "/api/dashboard":
+            today = datetime.utcnow().date().isoformat()
             with get_conn() as conn:
                 students = conn.execute("SELECT COUNT(*) AS c FROM students").fetchone()["c"]
                 avg_grade = conn.execute("SELECT ROUND(AVG(score), 2) AS a FROM grades").fetchone()["a"]
                 absent = conn.execute("SELECT COUNT(*) AS c FROM attendance WHERE status='absent'").fetchone()["c"]
                 paid = conn.execute("SELECT ROUND(COALESCE(SUM(amount), 0), 2) AS s FROM payments").fetchone()["s"]
+                activities_total = conn.execute("SELECT COUNT(*) AS c FROM activities").fetchone()["c"]
+                activities_today = conn.execute(
+                    "SELECT COUNT(*) AS c FROM activities WHERE activity_date=?", (today,)
+                ).fetchone()["c"]
             return self._send_json(
                 {
                     "students": students,
                     "average_grade": avg_grade if avg_grade is not None else 0,
                     "absent_count": absent,
                     "paid_total": paid,
+                    "activities_total": activities_total,
+                    "activities_today": activities_today,
                 }
             )
+
+        if path == "/api/activities":
+            with get_conn() as conn:
+                rows = conn.execute(
+                    """
+                    SELECT id, title, activity_type, class_name, activity_date, start_time, end_time,
+                           owner_name, status, notes, created_at
+                    FROM activities
+                    ORDER BY activity_date DESC, COALESCE(start_time, '00:00') DESC, id DESC
+                    """
+                ).fetchall()
+            return self._send_json([dict(r) for r in rows])
 
         if path.startswith("/api/reports/student/"):
             student_id = path.rsplit("/", 1)[-1]
@@ -158,6 +191,18 @@ class Handler(BaseHTTPRequestHandler):
                         "SELECT amount, term, paid_on FROM payments WHERE student_id=? ORDER BY paid_on DESC", (sid,)
                     ).fetchall()
                 ]
+                activities = [
+                    dict(r)
+                    for r in conn.execute(
+                        """
+                        SELECT title, activity_type, activity_date, start_time, end_time, owner_name, status, notes
+                        FROM activities
+                        WHERE class_name=?
+                        ORDER BY activity_date DESC, COALESCE(start_time, '00:00') DESC
+                        """,
+                        (student["class_name"],),
+                    ).fetchall()
+                ]
 
             avg = round(sum(g["score"] for g in grades) / len(grades), 2) if grades else 0
             absent_count = len([a for a in attendance if a["status"] == "absent"])
@@ -169,10 +214,12 @@ class Handler(BaseHTTPRequestHandler):
                         "attendance_entries": len(attendance),
                         "absent_count": absent_count,
                         "payments_total": round(sum(p["amount"] for p in payments), 2),
+                        "class_activities": len(activities),
                     },
                     "grades": grades,
                     "attendance": attendance,
                     "payments": payments,
+                    "activities": activities,
                 }
             )
 
@@ -261,6 +308,42 @@ class Handler(BaseHTTPRequestHandler):
                 )
                 conn.commit()
             return self._send_json({"message": "Payment recorded"}, 201)
+
+        if path == "/api/activities":
+            required = ["title", "activity_type", "class_name", "activity_date", "owner_name", "status"]
+            if any(k not in payload for k in required):
+                return self._send_json(
+                    {"error": "title, activity_type, class_name, activity_date, owner_name, status are required"},
+                    400,
+                )
+
+            status = str(payload["status"]).strip()
+            if status not in {"planned", "ongoing", "completed", "cancelled"}:
+                return self._send_json({"error": "status must be planned|ongoing|completed|cancelled"}, 400)
+
+            with get_conn() as conn:
+                conn.execute(
+                    """
+                    INSERT INTO activities(
+                        title, activity_type, class_name, activity_date,
+                        start_time, end_time, owner_name, status, notes, created_at
+                    ) VALUES(?,?,?,?,?,?,?,?,?,?)
+                    """,
+                    (
+                        str(payload["title"]).strip(),
+                        str(payload["activity_type"]).strip(),
+                        str(payload["class_name"]).strip(),
+                        str(payload["activity_date"]).strip(),
+                        str(payload.get("start_time", "")).strip() or None,
+                        str(payload.get("end_time", "")).strip() or None,
+                        str(payload["owner_name"]).strip(),
+                        status,
+                        str(payload.get("notes", "")).strip(),
+                        now_iso(),
+                    ),
+                )
+                conn.commit()
+            return self._send_json({"message": "Activity recorded"}, 201)
 
         self.send_error(404, "Not Found")
 
