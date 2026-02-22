@@ -1,4 +1,7 @@
 .git
+.gitignore
 __pycache__/
 *.pyc
-data/*.db
+*.pyo
+*.pyd
+data/
