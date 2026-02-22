@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="rw">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -9,23 +9,23 @@
   <body>
     <header>
       <h1>School Management System</h1>
-      <p>Amanota • Attendance • Amafaranga y’ishuri • Raporo</p>
+      <p>Gucunga abanyeshuri, amanota, attendance, amafaranga n'ibikorwa by'ishuri.</p>
     </header>
 
     <main>
-      <section class="cards" id="dashboard"></section>
-
-      <section class="panel">
-        <h2>Andika Umunyeshuri</h2>
-        <form id="studentForm">
-          <input name="name" placeholder="Amazina" required />
-          <input name="class_name" placeholder="Icyiciro (e.g. S2A)" required />
-          <input name="parent_phone" placeholder="Telephone y'umubyeyi" />
-          <button type="submit">Bika</button>
-        </form>
-      </section>
+      <section id="dashboard" class="cards"></section>
 
       <section class="grid-2">
+        <section class="panel">
+          <h2>Andika umunyeshuri</h2>
+          <form id="studentForm">
+            <input name="name" placeholder="Amazina" required />
+            <input name="class_name" placeholder="Icyiciro (e.g. S1A)" required />
+            <input name="parent_phone" placeholder="Telefoni y'umubyeyi" />
+            <button type="submit">Bika umunyeshuri</button>
+          </form>
+        </section>
+
         <section class="panel">
           <h2>Amanota</h2>
           <form id="gradeForm">
@@ -36,7 +36,9 @@
             <button type="submit">Andika amanota</button>
           </form>
         </section>
+      </section>
 
+      <section class="grid-2">
         <section class="panel">
           <h2>Attendance</h2>
           <form id="attendanceForm">
@@ -50,9 +52,7 @@
             <button type="submit">Bika attendance</button>
           </form>
         </section>
-      </section>
 
-      <section class="grid-2">
         <section class="panel">
           <h2>Amafaranga y'ishuri</h2>
           <form id="paymentForm">
@@ -63,7 +63,30 @@
             <button type="submit">Bika ubwishyu</button>
           </form>
         </section>
+      </section>
 
+      <section class="panel">
+        <h2>Ibikorwa by'ishuri (Activities)</h2>
+        <form id="activityForm" class="form-3">
+          <input name="title" placeholder="Umutwe w'igikorwa (e.g. Exams week)" required />
+          <input name="activity_type" placeholder="Ubwoko (Class, Sport, Exam, Club...)" required />
+          <input name="class_name" placeholder="Icyiciro bireba (e.g. S2B)" required />
+          <input name="activity_date" type="date" required />
+          <input name="start_time" type="time" />
+          <input name="end_time" type="time" />
+          <input name="owner_name" placeholder="Ushinzwe (Teacher/Staff)" required />
+          <select name="status">
+            <option value="planned">Planned</option>
+            <option value="ongoing">Ongoing</option>
+            <option value="completed">Completed</option>
+            <option value="cancelled">Cancelled</option>
+          </select>
+          <input name="notes" placeholder="Ibisobanuro by'inyongera" />
+          <button type="submit">Bika activity</button>
+        </form>
+      </section>
+
+      <section class="grid-2">
         <section class="panel">
           <h2>Raporo y'umunyeshuri</h2>
           <form id="reportForm">
@@ -71,6 +94,16 @@
             <button type="submit">Reba raporo</button>
           </form>
           <pre id="reportOutput">Raporo izagaragara hano...</pre>
+        </section>
+
+        <section class="panel">
+          <h2>Activities zose</h2>
+          <table>
+            <thead>
+              <tr><th>Itariki</th><th>Umutwe</th><th>Icyiciro</th><th>Status</th></tr>
+            </thead>
+            <tbody id="activitiesTable"></tbody>
+          </table>
         </section>
       </section>
 

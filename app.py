@@ -15,6 +15,7 @@ STATIC_DIR = ROOT / "static"
 def get_conn():
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
+    conn.execute("PRAGMA foreign_keys = ON")
     return conn
 
 
@@ -60,6 +61,20 @@ def init_db():
                 created_at TEXT NOT NULL,
                 FOREIGN KEY(student_id) REFERENCES students(id)
             );
+
+            CREATE TABLE IF NOT EXISTS activities (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                title TEXT NOT NULL,
+                activity_type TEXT NOT NULL,
+                class_name TEXT NOT NULL,
+                activity_date TEXT NOT NULL,
+                start_time TEXT,
+                end_time TEXT,
+                owner_name TEXT NOT NULL,
+                status TEXT CHECK(status IN ('planned','ongoing','completed','cancelled')) NOT NULL,
+                notes TEXT,
+                created_at TEXT NOT NULL
+            );
             """
         )
         conn.commit()
@@ -67,6 +82,22 @@ def init_db():
 
 def now_iso():
     return datetime.utcnow().isoformat(timespec="seconds") + "Z"
+
+
+def parse_date_yyyy_mm_dd(value: str):
+    try:
+        datetime.strptime(value, "%Y-%m-%d")
+        return True
+    except ValueError:
+        return False
+
+
+def parse_time_hh_mm(value: str):
+    try:
+        datetime.strptime(value, "%H:%M")
+        return True
+    except ValueError:
+        return False
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -106,6 +137,9 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/static/app.js":
             return self._send_file(STATIC_DIR / "app.js", "application/javascript; charset=utf-8")
 
+        if path == "/api/health":
+            return self._send_json({"status": "ok", "time": now_iso()})
+
         if path == "/api/students":
             with get_conn() as conn:
                 rows = conn.execute(
@@ -114,19 +148,38 @@ class Handler(BaseHTTPRequestHandler):
             return self._send_json([dict(r) for r in rows])
 
         if path == "/api/dashboard":
+            today = datetime.utcnow().date().isoformat()
             with get_conn() as conn:
                 students = conn.execute("SELECT COUNT(*) AS c FROM students").fetchone()["c"]
                 avg_grade = conn.execute("SELECT ROUND(AVG(score), 2) AS a FROM grades").fetchone()["a"]
                 absent = conn.execute("SELECT COUNT(*) AS c FROM attendance WHERE status='absent'").fetchone()["c"]
                 paid = conn.execute("SELECT ROUND(COALESCE(SUM(amount), 0), 2) AS s FROM payments").fetchone()["s"]
+                activities_total = conn.execute("SELECT COUNT(*) AS c FROM activities").fetchone()["c"]
+                activities_today = conn.execute(
+                    "SELECT COUNT(*) AS c FROM activities WHERE activity_date=?", (today,)
+                ).fetchone()["c"]
             return self._send_json(
                 {
                     "students": students,
                     "average_grade": avg_grade if avg_grade is not None else 0,
                     "absent_count": absent,
                     "paid_total": paid,
+                    "activities_total": activities_total,
+                    "activities_today": activities_today,
                 }
             )
+
+        if path == "/api/activities":
+            with get_conn() as conn:
+                rows = conn.execute(
+                    """
+                    SELECT id, title, activity_type, class_name, activity_date, start_time, end_time,
+                           owner_name, status, notes, created_at
+                    FROM activities
+                    ORDER BY activity_date DESC, COALESCE(start_time, '00:00') DESC, id DESC
+                    """
+                ).fetchall()
+            return self._send_json([dict(r) for r in rows])
 
         if path.startswith("/api/reports/student/"):
             student_id = path.rsplit("/", 1)[-1]
@@ -158,6 +211,18 @@ class Handler(BaseHTTPRequestHandler):
                         "SELECT amount, term, paid_on FROM payments WHERE student_id=? ORDER BY paid_on DESC", (sid,)
                     ).fetchall()
                 ]
+                activities = [
+                    dict(r)
+                    for r in conn.execute(
+                        """
+                        SELECT title, activity_type, activity_date, start_time, end_time, owner_name, status, notes
+                        FROM activities
+                        WHERE class_name=?
+                        ORDER BY activity_date DESC, COALESCE(start_time, '00:00') DESC
+                        """,
+                        (student["class_name"],),
+                    ).fetchall()
+                ]
 
             avg = round(sum(g["score"] for g in grades) / len(grades), 2) if grades else 0
             absent_count = len([a for a in attendance if a["status"] == "absent"])
@@ -169,10 +234,12 @@ class Handler(BaseHTTPRequestHandler):
                         "attendance_entries": len(attendance),
                         "absent_count": absent_count,
                         "payments_total": round(sum(p["amount"] for p in payments), 2),
+                        "class_activities": len(activities),
                     },
                     "grades": grades,
                     "attendance": attendance,
                     "payments": payments,
+                    "activities": activities,
                 }
             )
 
@@ -209,13 +276,18 @@ class Handler(BaseHTTPRequestHandler):
             except (TypeError, ValueError):
                 return self._send_json({"error": "student_id and score must be numeric"}, 400)
 
+            subject = str(payload.get("subject", "")).strip()
+            term = str(payload.get("term", "")).strip()
+            if not subject or not term:
+                return self._send_json({"error": "subject and term cannot be empty"}, 400)
+
             with get_conn() as conn:
                 student = conn.execute("SELECT id FROM students WHERE id=?", (sid,)).fetchone()
                 if not student:
                     return self._send_json({"error": "Student not found"}, 404)
                 conn.execute(
                     "INSERT INTO grades(student_id, subject, score, term, created_at) VALUES(?,?,?,?,?)",
-                    (sid, str(payload["subject"]).strip(), score, str(payload["term"]).strip(), now_iso()),
+                    (sid, subject, score, term, now_iso()),
                 )
                 conn.commit()
             return self._send_json({"message": "Grade recorded"}, 201)
@@ -228,16 +300,21 @@ class Handler(BaseHTTPRequestHandler):
                 sid = int(payload["student_id"])
             except (TypeError, ValueError):
                 return self._send_json({"error": "student_id must be numeric"}, 400)
-            status = str(payload["status"]).strip()
+
+            date_value = str(payload.get("date", "")).strip()
+            status = str(payload.get("status", "")).strip()
+            if not parse_date_yyyy_mm_dd(date_value):
+                return self._send_json({"error": "date must be YYYY-MM-DD"}, 400)
             if status not in {"present", "late", "absent"}:
                 return self._send_json({"error": "status must be present|late|absent"}, 400)
+
             with get_conn() as conn:
                 student = conn.execute("SELECT id FROM students WHERE id=?", (sid,)).fetchone()
                 if not student:
                     return self._send_json({"error": "Student not found"}, 404)
                 conn.execute(
                     "INSERT INTO attendance(student_id, date, status, created_at) VALUES(?,?,?,?)",
-                    (sid, str(payload["date"]).strip(), status, now_iso()),
+                    (sid, date_value, status, now_iso()),
                 )
                 conn.commit()
             return self._send_json({"message": "Attendance recorded"}, 201)
@@ -251,16 +328,81 @@ class Handler(BaseHTTPRequestHandler):
                 amount = float(payload["amount"])
             except (TypeError, ValueError):
                 return self._send_json({"error": "student_id and amount must be numeric"}, 400)
+
+            term = str(payload.get("term", "")).strip()
+            paid_on = str(payload.get("paid_on", "")).strip()
+            if not term:
+                return self._send_json({"error": "term cannot be empty"}, 400)
+            if amount <= 0:
+                return self._send_json({"error": "amount must be greater than 0"}, 400)
+            if not parse_date_yyyy_mm_dd(paid_on):
+                return self._send_json({"error": "paid_on must be YYYY-MM-DD"}, 400)
+
             with get_conn() as conn:
                 student = conn.execute("SELECT id FROM students WHERE id=?", (sid,)).fetchone()
                 if not student:
                     return self._send_json({"error": "Student not found"}, 404)
                 conn.execute(
                     "INSERT INTO payments(student_id, amount, term, paid_on, created_at) VALUES(?,?,?,?,?)",
-                    (sid, amount, str(payload["term"]).strip(), str(payload["paid_on"]).strip(), now_iso()),
+                    (sid, amount, term, paid_on, now_iso()),
                 )
                 conn.commit()
             return self._send_json({"message": "Payment recorded"}, 201)
+
+        if path == "/api/activities":
+            required = ["title", "activity_type", "class_name", "activity_date", "owner_name", "status"]
+            if any(k not in payload for k in required):
+                return self._send_json(
+                    {"error": "title, activity_type, class_name, activity_date, owner_name, status are required"},
+                    400,
+                )
+
+            title = str(payload.get("title", "")).strip()
+            activity_type = str(payload.get("activity_type", "")).strip()
+            class_name = str(payload.get("class_name", "")).strip()
+            activity_date = str(payload.get("activity_date", "")).strip()
+            start_time = str(payload.get("start_time", "")).strip()
+            end_time = str(payload.get("end_time", "")).strip()
+            owner_name = str(payload.get("owner_name", "")).strip()
+            status = str(payload.get("status", "")).strip()
+            notes = str(payload.get("notes", "")).strip()
+
+            if not title or not activity_type or not class_name or not owner_name:
+                return self._send_json({"error": "title, activity_type, class_name, owner_name cannot be empty"}, 400)
+            if status not in {"planned", "ongoing", "completed", "cancelled"}:
+                return self._send_json({"error": "status must be planned|ongoing|completed|cancelled"}, 400)
+            if not parse_date_yyyy_mm_dd(activity_date):
+                return self._send_json({"error": "activity_date must be YYYY-MM-DD"}, 400)
+            if start_time and not parse_time_hh_mm(start_time):
+                return self._send_json({"error": "start_time must be HH:MM"}, 400)
+            if end_time and not parse_time_hh_mm(end_time):
+                return self._send_json({"error": "end_time must be HH:MM"}, 400)
+            if start_time and end_time and start_time >= end_time:
+                return self._send_json({"error": "end_time must be later than start_time"}, 400)
+
+            with get_conn() as conn:
+                conn.execute(
+                    """
+                    INSERT INTO activities(
+                        title, activity_type, class_name, activity_date,
+                        start_time, end_time, owner_name, status, notes, created_at
+                    ) VALUES(?,?,?,?,?,?,?,?,?,?)
+                    """,
+                    (
+                        title,
+                        activity_type,
+                        class_name,
+                        activity_date,
+                        start_time or None,
+                        end_time or None,
+                        owner_name,
+                        status,
+                        notes,
+                        now_iso(),
+                    ),
+                )
+                conn.commit()
+            return self._send_json({"message": "Activity recorded"}, 201)
 
         self.send_error(404, "Not Found")
 

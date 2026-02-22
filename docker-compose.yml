@@ -1,0 +1,22 @@
+version: '3.9'
+services:
+  sms-web:
+    build: .
+    container_name: sms-web
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      SMS_HOST: 0.0.0.0
+      SMS_PORT: 8000
+    volumes:
+      - sms_data:/app/data
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/health', timeout=3)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  sms_data:

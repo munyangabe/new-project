@@ -1,31 +1,26 @@
 # School Management System (SMS)
 
-Sisiteme yuzuye yo gufasha amashuri gucunga:
+Sisiteme yoroshye kandi yumvikana yo gucunga ibikorwa by'ishuri byose:
+- Abanyeshuri
 - Amanota
 - Attendance
 - Amafaranga y'ishuri
-- Raporo z'abanyeshuri
-
-## Ikibazo gikemurwa
-
-Amashuri menshi aracyakoresha impapuro. Iyi system ibika amakuru muri database imwe, igatanga raporo zihuse kandi zigabanya amakosa.
+- Activities (exams, clubs, sports, events)
+- Raporo z'umunyeshuri
 
 ## Features z'ingenzi
 
+- **Students:** kwandika no kureba abanyeshuri.
 - **Amanota:** kwinjiza amanota ku isomo no kureba impuzandengo.
 - **Attendance:** gufata present/late/absent buri munsi.
-- **Amafaranga:** kwandika ubwishyu no kubara amafaranga yishyuwe yose.
-- **Raporo:** raporo y'umunyeshuri irimo summary + detail zose.
-- **Dashboard:** imibare y'ibanze (abanyeshuri, average grade, absences, total paid).
-
-## Pricing (Business model)
-
-- **50,000 FRW – 300,000 FRW** one-time setup fee kuri buri shuri
-- Cyangwa **monthly subscription** (bitewe n'ingano y'ishuri)
+- **Amafaranga:** kwandika ubwishyu no kubara total yishyuwe.
+- **Activities:** gutegura no kubika activities zose z'ishuri.
+- **Raporo:** raporo ya buri munyeshuri irimo grades + attendance + payments + class activities.
+- **Dashboard:** imibare y'ingenzi harimo n'iy'activities.
 
 ---
 
-## 1) Guhita uyitangiza kuri machine yawe (Local)
+## 1) Uko wayiruninga step-by-step (Local)
 
 ### Ibisabwa
 - Python 3.10+
@@ -33,7 +28,7 @@ Amashuri menshi aracyakoresha impapuro. Iyi system ibika amakuru muri database i
 ### Steps
 
 ```bash
-# 1) clone repo (simbuza URL iyawe)
+# 1) clone repo
 git clone <REPO_URL>
 
 # 2) injira muri project
@@ -46,56 +41,88 @@ python3 --version
 python3 app.py
 ```
 
-Hanyuma fungura: `http://localhost:8000`
+Niba byose ari sawa urabona:
 
-> App ikoresha SQLite (`data/sms.db`) ihita yirema ubwayo igihe uyitangiye.
+```text
+SMS running on http://0.0.0.0:8000
+```
+
+Hanyuma fungura muri browser: `http://localhost:8000`
+
+> Database ni SQLite: `data/sms.db` (ihita iremwa ubwayo).
 
 ---
 
-## 2) Uko uyikura hano ukayi-hostinga ikora neza
+## 2) Uko wapima ko ikora neza (Quick checks)
 
-### Option A: VPS (Ubuntu) — uburyo bworoshye kandi bwizewe
-
-```bash
-# kuri server ya Ubuntu
-sudo apt update
-sudo apt install -y git python3
-
-# kura code
-git clone <REPO_URL>
-cd new-project
-
-# tangiza kuri port ushaka (urugero 8080)
-SMS_HOST=0.0.0.0 SMS_PORT=8080 python3 app.py
-```
-
-Fungura firewall kuri 8080 niba bikenewe.
-
-### Option B: Docker hosting (Render/Railway/Fly.io/VM)
-
-Iyi project ifite `Dockerfile`, bityo ushobora kuyihostinga kuri provider wese wemera Docker.
+Mu terminal nshya (app ikiri running):
 
 ```bash
-# local docker test
-docker build -t sms-app .
-docker run -p 8000:8000 sms-app
+# health check
+curl -s http://localhost:8000/api/health
+
+# dashboard check
+curl -s http://localhost:8000/api/dashboard
 ```
 
-Fungura: `http://localhost:8000`
+Kongeramo student:
 
-### Option C: Render (Web Service)
+```bash
+curl -s -X POST http://localhost:8000/api/students \
+  -H 'Content-Type: application/json' \
+  -d '{"name":"Aline","class_name":"S3B","parent_phone":"0788000000"}'
+```
 
-1. Push code kuri GitHub.
-2. Jya kuri Render → **New Web Service**.
-3. Hitamo repo yawe.
-4. Runtime: **Docker** (Render izasoma `Dockerfile`).
-5. Deploy.
+Kongeramo activity:
 
-Render izatanga URL nka: `https://your-sms.onrender.com`
+```bash
+curl -s -X POST http://localhost:8000/api/activities \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "title":"Science Fair",
+    "activity_type":"Event",
+    "class_name":"S3B",
+    "activity_date":"2026-03-10",
+    "start_time":"09:00",
+    "end_time":"12:00",
+    "owner_name":"Murekatete",
+    "status":"planned",
+    "notes":"Presentations"
+  }'
+```
+
+Reba activities zose:
+
+```bash
+curl -s http://localhost:8000/api/activities
+```
 
 ---
 
-## 3) Igenamiterere ry'ingenzi (Environment variables)
+## 3) Uko coding y'iyi project iteye (kugira ngo uyisobanukirwe)
+
+- `app.py`
+  - Irimo HTTP server, API endpoints, na database logic.
+  - `init_db()` irema tables zose.
+  - `do_GET()` ikora fetch endpoints.
+  - `do_POST()` ikora create endpoints.
+- `static/index.html`
+  - UI forms na tables.
+- `static/app.js`
+  - Guhamagara APIs no kuzuza dashboard/tables.
+- `static/styles.css`
+  - Styles za UI.
+
+Niba ushaka guhindura feature, kora izi steps:
+1. Hindura backend endpoint muri `app.py`.
+2. Hindura form cyangwa table muri `static/index.html`.
+3. Hindura API call logic muri `static/app.js`.
+4. Ongeramo style muri `static/styles.css`.
+5. Kora test ukoresheje `curl` mbere yo gukomita.
+
+---
+
+## 4) Environment variables
 
 - `SMS_HOST` (default: `0.0.0.0`)
 - `SMS_PORT` (default: `8000`)
@@ -108,20 +135,55 @@ SMS_HOST=0.0.0.0 SMS_PORT=9000 python3 app.py
 
 ---
 
-## 4) Troubleshooting
-
-- **Port 8000 iri gukoreshwa:** hindura `SMS_PORT`.
-- **Ntibifunguka hanze ya server:** reba firewall/security group.
-- **Data ntibika:** emeza ko folder `data/` yandikwamo.
-
----
-
 ## API endpoints
 
+- `GET /api/health`
 - `GET /api/dashboard`
 - `GET /api/students`
 - `POST /api/students`
 - `POST /api/grades`
 - `POST /api/attendance`
 - `POST /api/payments`
+- `GET /api/activities`
+- `POST /api/activities`
 - `GET /api/reports/student/{id}`
+
+---
+
+## 5) Gukoresha nka Website muri Docker (Frontend + Backend)
+
+Iyi project ifite **frontend (HTML/CSS/JS)** na **backend (Python API)** muri app imwe, kandi Docker irabikoresha byose hamwe nka website imwe.
+
+### Option A: Docker Compose (recommended)
+
+```bash
+# 1) Build + run
+docker compose up --build -d
+
+# 2) Reba logs
+docker compose logs -f
+
+# 3) Fungura website
+# http://localhost:8000
+
+# 4) Health check
+curl -s http://localhost:8000/api/health
+```
+
+Data ibikwa muri volume `sms_data` kugirango data idasibangana container yahagaze.
+
+Guhagarika:
+
+```bash
+docker compose down
+```
+
+### Option B: Docker run (container imwe)
+
+```bash
+docker build -t sms-app .
+docker run -d --name sms-app -p 8000:8000 -v sms_data:/app/data sms-app
+```
+
+Hanyuma fungura: `http://localhost:8000`
+
